@@ -1,0 +1,23 @@
+{
+  "name": "relay-postman-clone",
+  "version": "1.0.0",
+  "description": "Client/server Postman-like API workbench. Requests execute on the server (whitelisted host); the client runs in the browser.",
+  "main": "server/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.670.0",
+    "axios": "^1.7.7",
+    "basic-ftp": "^5.0.5",
+    "cookie-parser": "^1.4.7",
+    "express": "^4.21.1",
+    "jsonwebtoken": "^9.0.2",
+    "ssh2-sftp-client": "^11.0.0"
+  }
+}

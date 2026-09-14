@@ -1,0 +1,38 @@
+services:
+  relay:
+    build: .
+    image: relay-postman-clone:latest
+    container_name: relay
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+      # SOCKS5 egress proxy (only used when SOCKS_ENABLED=true).
+      - "${SOCKS_PORT:-1080}:${SOCKS_PORT:-1080}"
+    environment:
+      AUTH_USERNAME: ${AUTH_USERNAME:-admin}
+      AUTH_PASSWORD: ${AUTH_PASSWORD:-change-me-please}
+      JWT_SECRET: ${JWT_SECRET:-please-change-this-secret}
+      SESSION_TTL_SECONDS: ${SESSION_TTL_SECONDS:-43200}
+      PORT: 8080
+      DATA_DIR: /app/data
+      MAX_BODY_MB: ${MAX_BODY_MB:-50}
+      REQUEST_TIMEOUT_MS: ${REQUEST_TIMEOUT_MS:-60000}
+      SECURE_COOKIE: ${SECURE_COOKIE:-false}
+      # Flx (shared) collections from S3 — leave FLX_S3_BUCKET blank to disable.
+      FLX_S3_BUCKET: ${FLX_S3_BUCKET:-}
+      FLX_S3_PREFIX: ${FLX_S3_PREFIX:-}
+      FLX_S3_REGION: ${FLX_S3_REGION:-us-east-1}
+      FLX_CACHE_TTL_SECONDS: ${FLX_CACHE_TTL_SECONDS:-300}
+      # AWS creds come from the host's IAM role in prod; these pass through for local/dev use.
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      # SOCKS5 egress proxy — set SOCKS_ENABLED=true to route local integration jobs through this host.
+      SOCKS_ENABLED: ${SOCKS_ENABLED:-false}
+      SOCKS_PORT: ${SOCKS_PORT:-1080}
+      SOCKS_USERNAME: ${SOCKS_USERNAME:-}
+      SOCKS_PASSWORD: ${SOCKS_PASSWORD:-}
+      SOCKS_ALLOW_IPS: ${SOCKS_ALLOW_IPS:-}
+    volumes:
+      # Persist collections on the host so they survive container rebuilds.
+      - ./data:/app/data

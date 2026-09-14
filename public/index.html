@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Relay — API Workbench</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+
+  <!-- ============ LOGIN GATE ============ -->
+  <div id="login-screen" class="login-screen" hidden>
+    <form id="login-form" class="login-card" autocomplete="off">
+      <div class="login-logo">⚡ Relay</div>
+      <p class="login-sub">Server-side API workbench</p>
+      <input id="login-username" type="text" placeholder="Username" autocomplete="username" />
+      <input id="login-password" type="password" placeholder="Password" autocomplete="current-password" />
+      <button type="submit" class="btn btn-primary btn-block">Sign in</button>
+      <div id="login-error" class="login-error" hidden></div>
+    </form>
+  </div>
+
+  <!-- ============ APP ============ -->
+  <div id="app" class="app" hidden>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-head">
+        <span class="brand">⚡ Relay</span>
+        <div class="sidebar-head-actions">
+          <button id="btn-import" class="icon-btn" title="Import into Personal (Relay or Postman JSON)">⬇</button>
+          <button id="btn-new-collection" class="icon-btn" title="New personal collection">＋</button>
+        </div>
+      </div>
+      <div class="sidebar-search">
+        <input id="sidebar-filter" type="text" placeholder="Filter requests…" />
+      </div>
+
+      <div class="sidebar-scroll">
+        <!-- Flx (shared, read-only) -->
+        <section class="side-section" id="section-flx">
+          <div class="side-section-head">
+            <span class="caret">▾</span>
+            <span class="side-section-title">Flx <span class="ro-badge">shared</span></span>
+            <button id="btn-refresh-flx" class="icon-btn" title="Refresh from S3">⟳</button>
+          </div>
+          <div id="flx-tree" class="tree"></div>
+        </section>
+
+        <!-- Personal (this browser) -->
+        <section class="side-section" id="section-personal">
+          <div class="side-section-head">
+            <span class="caret">▾</span>
+            <span class="side-section-title">Personal <span class="ro-badge alt">this browser</span></span>
+            <button id="btn-new-collection-2" class="icon-btn" title="New personal collection">＋</button>
+          </div>
+          <div id="personal-tree" class="tree"></div>
+        </section>
+
+        <!-- History -->
+        <section class="side-section" id="section-history">
+          <div class="side-section-head">
+            <span class="caret">▾</span>
+            <span class="side-section-title">History <span class="ro-badge alt">14 days</span></span>
+            <button id="btn-clear-history" class="icon-btn" title="Clear history">🗑</button>
+          </div>
+          <div id="history-list" class="tree history-list"></div>
+        </section>
+      </div>
+
+      <div class="sidebar-foot">
+        <span id="who" class="who"></span>
+        <button id="btn-logout" class="link-btn">Log out</button>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="main">
+      <!-- Open request tabs -->
+      <div class="tab-bar">
+        <div id="tabs" class="tabs"></div>
+        <button id="btn-new-tab" class="icon-btn tab-new" title="New tab">＋</button>
+      </div>
+
+      <section id="builder" class="builder">
+        <!-- Read-only banner (shown when the active tab is a Flx request) -->
+        <div id="readonly-banner" class="readonly-banner" hidden>
+          🔒 This is a shared <b>Flx</b> request (read-only). Edits stay in this tab — use <b>Save</b> to copy it into a Personal collection.
+        </div>
+
+        <!-- Protocol switch -->
+        <div class="protocol-switch">
+          <button class="proto-btn active" data-proto="rest">REST</button>
+          <button class="proto-btn" data-proto="soap">SOAP</button>
+          <button class="proto-btn" data-proto="ftp">FTP / SFTP</button>
+        </div>
+
+        <!-- HTTP / SOAP request line -->
+        <div id="http-line" class="request-line">
+          <select id="method" class="method-select">
+            <option>GET</option><option>POST</option><option>PUT</option>
+            <option>PATCH</option><option>DELETE</option><option>HEAD</option><option>OPTIONS</option>
+          </select>
+          <input id="url" class="url-input" type="text" placeholder="https://api.example.com/v1/resource" spellcheck="false" />
+          <button id="btn-send" class="btn btn-primary">Send</button>
+          <button id="btn-save" class="btn">Save</button>
+        </div>
+
+        <!-- FTP connection line -->
+        <div id="ftp-line" class="ftp-line" hidden>
+          <select id="ftp-protocol" class="method-select">
+            <option value="ftp">FTP</option><option value="ftps">FTPS</option><option value="sftp">SFTP</option>
+          </select>
+          <input id="ftp-host" class="url-input" type="text" placeholder="ftp.example.com" spellcheck="false" />
+          <input id="ftp-port" class="port-input" type="text" placeholder="port" />
+          <button id="btn-ftp-send" class="btn btn-primary">Run</button>
+          <button id="btn-save-ftp" class="btn">Save</button>
+        </div>
+
+        <!-- Request config tabs -->
+        <div id="http-config" class="config">
+          <nav class="config-tabs">
+            <button class="ctab active" data-tab="params">Params</button>
+            <button class="ctab" data-tab="auth">Auth</button>
+            <button class="ctab" data-tab="headers">Headers</button>
+            <button class="ctab" data-tab="body">Body</button>
+          </nav>
+          <div class="ctab-panel" data-panel="params"><div id="params-editor" class="kv-editor"></div></div>
+          <div class="ctab-panel" data-panel="auth" hidden>
+            <label class="field"><span>Type</span>
+              <select id="auth-type">
+                <option value="none">No Auth</option><option value="bearer">Bearer Token</option>
+                <option value="basic">Basic Auth</option><option value="apikey">API Key</option>
+              </select>
+            </label>
+            <div id="auth-bearer" class="auth-fields" hidden>
+              <label class="field"><span>Token</span><input id="auth-token" type="text" spellcheck="false" /></label>
+            </div>
+            <div id="auth-basic" class="auth-fields" hidden>
+              <label class="field"><span>Username</span><input id="auth-username" type="text" spellcheck="false" /></label>
+              <label class="field"><span>Password</span><input id="auth-password" type="password" spellcheck="false" /></label>
+            </div>
+            <div id="auth-apikey" class="auth-fields" hidden>
+              <label class="field"><span>Key</span><input id="auth-key" type="text" spellcheck="false" /></label>
+              <label class="field"><span>Value</span><input id="auth-value" type="text" spellcheck="false" /></label>
+              <label class="field"><span>Add to</span>
+                <select id="auth-in"><option value="header">Header</option><option value="query">Query param</option></select>
+              </label>
+            </div>
+          </div>
+          <div class="ctab-panel" data-panel="headers" hidden><div id="headers-editor" class="kv-editor"></div></div>
+          <div class="ctab-panel" data-panel="body" hidden>
+            <div class="body-mode-row">
+              <label><input type="radio" name="bodyMode" value="none" checked /> None</label>
+              <label><input type="radio" name="bodyMode" value="json" /> JSON</label>
+              <label><input type="radio" name="bodyMode" value="raw" /> Raw</label>
+              <label><input type="radio" name="bodyMode" value="form" /> Form URL-encoded</label>
+              <label id="soap-mode-label" hidden><input type="radio" name="bodyMode" value="soap" /> SOAP/XML</label>
+            </div>
+            <div id="soap-action-row" class="soap-action-row" hidden>
+              <label class="field"><span>SOAPAction</span><input id="soap-action" type="text" placeholder="urn:ServiceName#Operation" spellcheck="false" /></label>
+            </div>
+            <div id="raw-ctype-row" class="soap-action-row" hidden>
+              <label class="field"><span>Content-Type</span><input id="raw-ctype" type="text" placeholder="text/plain" spellcheck="false" /></label>
+            </div>
+            <textarea id="body-text" class="body-text" spellcheck="false" placeholder="Request body…" hidden></textarea>
+            <div id="form-editor" class="kv-editor" hidden></div>
+            <div class="body-tools"><button id="btn-beautify" class="link-btn" hidden>Beautify JSON</button></div>
+          </div>
+        </div>
+
+        <!-- FTP config -->
+        <div id="ftp-config" class="config" hidden>
+          <div class="ftp-grid">
+            <label class="field"><span>Username</span><input id="ftp-username" type="text" spellcheck="false" /></label>
+            <label class="field"><span>Password</span><input id="ftp-password" type="password" spellcheck="false" /></label>
+            <label class="field"><span>Operation</span>
+              <select id="ftp-operation">
+                <option value="list">List directory</option>
+                <option value="download">Download file</option>
+                <option value="upload">Upload file</option>
+              </select>
+            </label>
+            <label class="field"><span id="ftp-path-label">Remote path</span><input id="ftp-path" type="text" placeholder="/" spellcheck="false" /></label>
+          </div>
+          <div id="ftp-upload-row" class="ftp-upload-row" hidden>
+            <label class="field field-wide"><span>File contents to upload</span>
+              <textarea id="ftp-upload-content" class="body-text" spellcheck="false" placeholder="Paste text to upload…"></textarea>
+            </label>
+          </div>
+        </div>
+
+        <!-- Response -->
+        <div class="response">
+          <div class="response-head">
+            <span class="response-title">Response</span>
+            <div id="response-meta" class="response-meta"></div>
+          </div>
+          <nav class="config-tabs" id="response-tabs" hidden>
+            <button class="rtab active" data-rtab="body">Body</button>
+            <button class="rtab" data-rtab="headers">Headers</button>
+          </nav>
+          <div id="response-body" class="response-body">
+            <div class="response-empty">Send a request to see the response here.</div>
+          </div>
+          <div id="response-headers" class="response-headers" hidden></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <input id="import-file" type="file" accept="application/json,.json" hidden />
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
